@@ -1,124 +1,90 @@
-"""
-algoritmos.py
-Implementaciones de BFS, DFS y A* para grafos y mapas de cuadricula.
-"""
+# Algoritmos de búsqueda: BFS, DFS y A*
 
-from collections import deque
-import heapq
+Proyecto que implementa y compara tres algoritmos de búsqueda de caminos:
+**BFS** (búsqueda en anchura), **DFS** (búsqueda en profundidad) y **A\***
+(búsqueda informada con heurística), sobre un grafo simple y sobre mapas de
+cuadrícula.
 
+## Estructura del repositorio
 
-# ---------------------------------------------------------------------------
-# Utilidad comun: reconstruir camino a partir del diccionario de padres
-# ---------------------------------------------------------------------------
-def reconstruir_camino(padres, inicio, meta):
-    if meta not in padres:
-        return None
-    camino = [meta]
-    while camino[-1] != inicio:
-        camino.append(padres[camino[-1]])
-    camino.reverse()
-    return camino
+```
+proyecto-busqueda/
+├── src/
+│   ├── grafo.py         # Grafo de ejemplo (Fase 1)
+│   ├── mapas.py          # Lectura de mapas de texto y cálculo de vecinos
+│   ├── algoritmos.py     # Implementación de BFS, DFS y A*
+│   └── main.py            # Script principal: ejecuta y compara todo
+├── mapas/
+│   ├── mapa1.txt          # Mapa de prueba pequeño
+│   └── mapa2.txt          # Mapa de prueba tipo laberinto serpentina
+├── salidas/
+│   └── salida_consola.txt # Captura de la salida de consola
+├── reflexion.md           # Reflexión final del equipo
+└── README.md
+```
 
+## Requisitos
 
-# ---------------------------------------------------------------------------
-# BFS (Busqueda en anchura) - funciona sobre grafos (dict) y sobre mapas
-# (siempre que se le pase una funcion vecinos(nodo) -> lista de nodos)
-# ---------------------------------------------------------------------------
-def bfs(vecinos_fn, inicio, meta, trazas=False):
-    """
-    vecinos_fn: funcion que recibe un nodo y devuelve sus vecinos (lista)
-    inicio, meta: nodos (pueden ser str en grafo, o tupla (fila, col) en mapa)
-    """
-    cola = deque([inicio])
-    # IMPORTANTE: se marca visitado al ENTRAR a la cola, no al salir.
-    # Este es el error frecuente descrito en la Fase 2: si se marca tarde,
-    # un mismo nodo puede entrar varias veces a la cola.
-    visitados = {inicio}
-    padres = {inicio: None}
-    nodos_explorados = 0
+- Python 3.8 o superior (no se necesitan librerías externas, solo la
+  librería estándar: `collections` y `heapq`).
 
-    while cola:
-        if trazas:
-            print(f"  Frontera: {list(cola)} | Visitados: {visitados}")
+## Cómo ejecutar
 
-        nodo_actual = cola.popleft()
-        nodos_explorados += 1
+1. Clonar el repositorio y entrar a la carpeta `src`:
 
-        if nodo_actual == meta:
-            return reconstruir_camino(padres, inicio, meta), nodos_explorados
+   ```bash
+   git clone <url-del-repositorio>
+   cd proyecto-busqueda/src
+   ```
 
-        for vecino in vecinos_fn(nodo_actual):
-            if vecino not in visitados:
-                visitados.add(vecino)
-                padres[vecino] = nodo_actual
-                cola.append(vecino)
+2. Ejecutar el script principal:
 
-    return None, nodos_explorados
+   ```bash
+   python3 main.py
+   ```
 
+   Esto va a:
+   - Correr **BFS** y **DFS** sobre el grafo simple de la Fase 1 (`A` → `F`).
+   - Correr **BFS**, **DFS** y **A\*** sobre `mapas/mapa1.txt` y
+     `mapas/mapa2.txt`, imprimiendo el mapa con el camino encontrado marcado
+     con `*`, además de la longitud del camino y la cantidad de nodos
+     explorados por cada algoritmo.
+   - Imprimir una tabla comparativa al final de cada mapa.
 
-# ---------------------------------------------------------------------------
-# DFS (Busqueda en profundidad) - misma estructura que BFS pero con pila
-# ---------------------------------------------------------------------------
-def dfs(vecinos_fn, inicio, meta, trazas=False):
-    pila = [inicio]
-    visitados = {inicio}
-    padres = {inicio: None}
-    nodos_explorados = 0
+3. Si se quiere guardar la salida en un archivo (como se hizo en
+   `salidas/salida_consola.txt`):
 
-    while pila:
-        if trazas:
-            print(f"  Pila: {pila} | Visitados: {visitados}")
+   ```bash
+   python3 main.py > ../salidas/salida_consola.txt
+   ```
 
-        nodo_actual = pila.pop()  # diferencia clave: ultimo en entrar, primero en salir
-        nodos_explorados += 1
+## Cómo probar con un mapa propio
 
-        if nodo_actual == meta:
-            return reconstruir_camino(padres, inicio, meta), nodos_explorados
+Crear un archivo `.txt` dentro de `mapas/` usando estos símbolos:
 
-        for vecino in vecinos_fn(nodo_actual):
-            if vecino not in visitados:
-                visitados.add(vecino)
-                padres[vecino] = nodo_actual
-                pila.append(vecino)
+| Símbolo | Significado   |
+|---------|---------------|
+| `S`     | Inicio        |
+| `G`     | Meta          |
+| `.`     | Camino libre  |
+| `#`     | Obstáculo     |
 
-    return None, nodos_explorados
+Y agregar una llamada `probar_mapa("nombre_del_archivo.txt")` al final de
+`main.py`.
 
+## Cómo activar las trazas de depuración
 
-# ---------------------------------------------------------------------------
-# A* - requiere coordenadas (fila, col) para poder calcular la heuristica
-# ---------------------------------------------------------------------------
-def heuristica_manhattan(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+Las funciones `bfs`, `dfs` y `a_estrella` en `algoritmos.py` aceptan un
+parámetro opcional `trazas=True`, que imprime en cada iteración la
+frontera/pila, los visitados y (en A*) el costo acumulado y el padre
+asignado a cada nodo. Ejemplo:
 
+```python
+from algoritmos import bfs
+camino, explorados = bfs(vecinos_fn, inicio, meta, trazas=True)
+```
 
-def a_estrella(vecinos_fn, inicio, meta, trazas=False):
-    contador = 0  # desempata cuando dos nodos tienen el mismo f(n)
-    frontera = [(0, contador, inicio)]
-    padres = {inicio: None}
-    costo_g = {inicio: 0}
-    nodos_explorados = 0
-
-    while frontera:
-        if trazas:
-            vista = [(f, n) for f, _, n in frontera]
-            print(f"  Frontera (f, nodo): {vista}")
-
-        f_actual, _, nodo_actual = heapq.heappop(frontera)
-        nodos_explorados += 1
-
-        if nodo_actual == meta:
-            return reconstruir_camino(padres, inicio, meta), costo_g[meta], nodos_explorados
-
-        for vecino in vecinos_fn(nodo_actual):
-            nuevo_costo = costo_g[nodo_actual] + 1  # cada paso cuesta 1
-
-            if vecino not in costo_g or nuevo_costo < costo_g[vecino]:
-                costo_g[vecino] = nuevo_costo
-                f = nuevo_costo + heuristica_manhattan(vecino, meta)
-                contador += 1
-                heapq.heappush(frontera, (f, contador, vecino))
-                padres[vecino] = nodo_actual
-                if trazas:
-                    print(f"    Padre asignado: {vecino} -> {nodo_actual} | g={nuevo_costo} f={f}")
-
-    return None, None, nodos_explorados
+Esto sigue la estrategia de **depuración por capas** descrita en la Fase 8:
+primero se valida que el mapa se lea bien, luego que la frontera crezca y
+disminuya correctamente, y finalmente que el camino reconstruido empiece en
+`S` y termine en `G`.
